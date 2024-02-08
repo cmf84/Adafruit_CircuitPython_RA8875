@@ -29,15 +29,12 @@ Implementation Notes
 # imports
 import struct
 import time
+import spidev
 
-from digitalio import Direction
-from adafruit_bus_device import spi_device
 import adafruit_ra8875.registers as reg
 
 try:
     from typing import Optional, Tuple, Union
-    from digitalio import DigitalInOut  # pylint: disable=ungrouped-imports
-    from busio import SPI
 except ImportError:
     pass
 
@@ -76,18 +73,20 @@ class RA8875_Device:
     # pylint: disable-msg=invalid-name,too-many-arguments
     def __init__(
         self,
-        spi: SPI,
-        cs: DigitalInOut,
-        rst: Optional[DigitalInOut] = None,
+        spi_bus: int = 0,
+        spi_device: int = 0,
+        rst: Optional[int] = None,
         width: int = 800,
         height: int = 480,
         baudrate: int = 6000000,
         polarity: int = 0,
         phase: int = 0,
     ) -> None:
-        self.spi_device = spi_device.SPIDevice(
-            spi, cs, baudrate=baudrate, polarity=polarity, phase=phase
-        )
+        self.spi_device = spidev.SpiDev()
+        self.spi_device.open(spi_bus, spi_device)
+        self.spi_device.max_speed_hz = baudrate
+        self.spi_device.mode = ( (polarity & 0b1)<<1 | (phase & 0b1) )
+
         # Display advertised as 480x80 is actually 480x82
         if width == 480 and height == 80:
             height = 82
@@ -100,8 +99,8 @@ class RA8875_Device:
         if self.rst:
             self.rst.switch_to_output(value=0)
             self.reset()
-        if self._read_reg(0) == 0x75:
-            return
+        #if self._read_reg(0) == 0x75:
+        #    return
         self._adc_clk = reg.TPCR0_ADCCLK_DIV16
 
     # pylint: enable-msg=invalid-name,too-many-arguments
@@ -210,9 +209,8 @@ class RA8875_Device:
 
         :param byte cmd: The register to select
         """
-        with self.spi_device as spi:
-            spi.write(reg.CMDWR)  # pylint: disable=no-member
-            spi.write(bytearray([cmd & 0xFF]))  # pylint: disable=no-member
+        #with self.spi_device as spi:
+        self.spi_device.writebytes([reg.CMDWR, cmd & 0xFF])  # pylint: disable=no-member
 
     def _write_data(self, data: int, raw: bool = False) -> None:
         """
@@ -222,13 +220,11 @@ class RA8875_Device:
         :type data: byte or bytearray
         :param bool raw: (optional) Is the data a raw bytearray (default=False)
         """
-        with self.spi_device as spi:
-            spi.write(reg.DATWR)  # pylint: disable=no-member
-            if raw and isinstance(data, str):
-                data = bytes(data, "utf8")
-            spi.write(
-                data if raw else bytearray([data & 0xFF])
-            )  # pylint: disable=no-member
+        if raw and isinstance(data, str):
+            data = bytes(data, "utf8")
+        elif not raw:
+            data = bytearray([data & 0xFF])
+        self.spi_device.writebytes(reg.DATWRb + data)  # pylint: disable=no-member
 
     def _read_reg(self, cmd: int) -> int:
         """
@@ -249,10 +245,10 @@ class RA8875_Device:
         :rtype: byte
         """
         data = bytearray(1)
-        with self.spi_device as spi:
-            spi.write(reg.DATRD)  # pylint: disable=no-member
-            spi.readinto(data)  # pylint: disable=no-member
-            return struct.unpack(">B", data)[0]
+        #with self.spi_device as spi:
+        self.spi_device.writebytes2(reg.DATRD)  # pylint: disable=no-member
+        data = self.spi_device.readbytes(1)  # pylint: disable=no-member
+        return data[0]
 
     def _wait_poll(self, register: int, mask: int) -> bool:
         """
@@ -332,19 +328,20 @@ class RA8875_Device:
         self._write_reg(reg.P1DCR, level)
 
     def touch_init(
-        self, tpin: Optional[DigitalInOut] = None, enable: bool = True
+        self, tpin = None, enable: bool = True
     ) -> None:
         """
-        Initialize the Touchscreen
+        Initialize the Touchscreen. Dummy 
 
         :param DigitalInOut tpin: (Optional) The Touch Screen Interrupt Pin (default=None)
         :param bool enable: Enable the Touch Functionality as well
         """
-        if tpin is not None:
-            tpin.direction = Direction.INPUT
-        self._tpin = tpin
-        self._write_reg(reg.INTC2, reg.INTC2_TP)
-        self.touch_enable(enable)
+        pass
+        #if tpin is not None:
+        #    tpin.direction = Direction.INPUT
+        #self._tpin = tpin
+        #self._write_reg(reg.INTC2, reg.INTC2_TP)
+        #self.touch_enable(enable)
 
     def touch_enable(self, touch_on: bool) -> None:
         """
@@ -432,9 +429,9 @@ class RA8875Display(RA8875_Device):
     # pylint: disable-msg=invalid-name,too-many-arguments
     def __init__(
         self,
-        spi: SPI,
-        cs: DigitalInOut,
-        rst: Optional[DigitalInOut] = None,
+        spi_bus: int = 0,
+        spi_device: int = 0,
+        rst: Optional[int] = None,
         width: int = 800,
         height: int = 480,
         baudrate: int = 6000000,
@@ -442,7 +439,7 @@ class RA8875Display(RA8875_Device):
         phase: int = 0,
     ) -> None:
         self._txt_scale = 0
-        super().__init__(spi, cs, rst, width, height, baudrate, polarity, phase)
+        super().__init__(spi_bus ,spi_device, rst, width, height, baudrate, polarity, phase)
 
     # pylint: disable=too-many-arguments
 
