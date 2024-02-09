@@ -3,35 +3,28 @@
 
 # Quick test of RA8875 with Feather M4
 import time
-import busio
-import digitalio
-import board
 
 from adafruit_ra8875 import ra8875
 from adafruit_ra8875.ra8875 import color565
 
 BLACK = color565(0, 0, 0)
 RED = color565(255, 0, 0)
-BLUE = color565(0, 255, 0)
-GREEN = color565(0, 0, 255)
+GREEN = color565(0, 255, 0)
+BLUE = color565(0, 0, 255)
 YELLOW = color565(255, 255, 0)
 CYAN = color565(0, 255, 255)
 MAGENTA = color565(255, 0, 255)
 WHITE = color565(255, 255, 255)
 
-# Configuration for CS and RST pins:
-cs_pin = digitalio.DigitalInOut(board.D9)
-rst_pin = digitalio.DigitalInOut(board.D10)
-int_pin = digitalio.DigitalInOut(board.D11)
+# Configuration for RST, interrupt pins (TBD):
+#rst_pin = digitalio.DigitalInOut(board.D10)
+#int_pin = digitalio.DigitalInOut(board.D11)
 
 # Config for display baudrate (default max is 6mhz):
 BAUDRATE = 6000000
 
-# Setup SPI bus using hardware SPI:
-spi = busio.SPI(clock=board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-
 # Create and setup the RA8875 display:
-display = ra8875.RA8875(spi, cs=cs_pin, rst=rst_pin, baudrate=BAUDRATE)
+display = ra8875.RA8875(spi_bus=0, spi_device=0, baudrate=BAUDRATE)
 display.init()
 
 display.fill(RED)
@@ -68,26 +61,29 @@ display.txt_size(2)
 testvar = 99
 display.txt_write("Player Score: " + str(testvar))
 
-display.touch_init(int_pin)
-display.touch_enable(True)
 
-x_scale = 1024 / display.width
-y_scale = 1024 / display.height
+#TOUCH CONTROL NOT IMPLEMENTED FOR NOW
+#CF, Feb 2024
+#display.touch_init(int_pin)
+#display.touch_enable(True)
+
+#x_scale = 1024 / display.width
+#y_scale = 1024 / display.height
 
 # Main loop:
-while True:
-    if display.touched():
-        coords = display.touch_read()
-        display.fill_circle(
-            int(coords[0] / x_scale), int(coords[1] / y_scale), 4, MAGENTA
-        )
-        display.txt_color(WHITE, BLACK)
-        display.txt_set_cursor(display.width // 2 - 220, display.height // 2 - 20)
-        display.txt_size(2)
-        display.txt_write(
-            "Position ("
-            + str(int(coords[0] / x_scale))
-            + ", "
-            + str(int(coords[1] / y_scale))
-            + ")"
-        )
+#while True:
+#    if display.touched():
+#        coords = display.touch_read()
+#        display.fill_circle(
+#            int(coords[0] / x_scale), int(coords[1] / y_scale), 4, MAGENTA
+#        )
+#        display.txt_color(WHITE, BLACK)
+#        display.txt_set_cursor(display.width // 2 - 220, display.height // 2 - 20)
+#        display.txt_size(2)
+#        display.txt_write(
+#            "Position ("
+#            + str(int(coords[0] / x_scale))
+#            + ", "
+#            + str(int(coords[1] / y_scale))
+#            + ")"
+#        )

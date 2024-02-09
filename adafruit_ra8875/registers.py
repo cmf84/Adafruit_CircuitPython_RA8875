@@ -12,11 +12,10 @@ A useful index of RA8875 Registers
 """
 
 # Command/Data for SPI
-DATWR = 0x00  # Data Write
-DATWRb = b"\x80" 
-DATRD = 0x40  # Data Read
-CMDWR = 0x80  # Command Write
-CMDRD = 0xC0  # Status Read
+DATWR = b"\x00"  # Data Write
+DATRD = b"\x40"  # Data Read
+CMDWR = b"\x80"  # Command Write
+CMDRD = b"\xC0"  # Status Read
 
 # Registers and Bits
 PWRR = 0x01

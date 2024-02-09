@@ -210,7 +210,7 @@ class RA8875_Device:
         :param byte cmd: The register to select
         """
         #with self.spi_device as spi:
-        self.spi_device.writebytes([reg.CMDWR, cmd & 0xFF])  # pylint: disable=no-member
+        self.spi_device.writebytes( reg.CMDWR+bytearray([cmd & 0xFF]) )  # pylint: disable=no-member
 
     def _write_data(self, data: int, raw: bool = False) -> None:
         """
@@ -224,7 +224,7 @@ class RA8875_Device:
             data = bytes(data, "utf8")
         elif not raw:
             data = bytearray([data & 0xFF])
-        self.spi_device.writebytes(reg.DATWRb + data)  # pylint: disable=no-member
+        self.spi_device.writebytes( reg.DATWR+data )  # pylint: disable=no-member
 
     def _read_reg(self, cmd: int) -> int:
         """
@@ -244,11 +244,9 @@ class RA8875_Device:
         :return: The data of the register
         :rtype: byte
         """
-        data = bytearray(1)
-        #with self.spi_device as spi:
-        self.spi_device.writebytes2(reg.DATRD)  # pylint: disable=no-member
-        data = self.spi_device.readbytes(1)  # pylint: disable=no-member
-        return data[0]
+        #xfer_data = bytearray(reg.DATRD)+bytearray(1)
+        data = self.spi_device.xfer( bytearray(reg.DATRD)+bytearray(1) )  # pylint: disable=no-member
+        return data[1]
 
     def _wait_poll(self, register: int, mask: int) -> bool:
         """
